@@ -7,11 +7,25 @@ import cv2
 import numpy as np
 
 @dataclass
-class Point:    
+class Point:  
+    """
+    A data class representing a point in 2D space with an associated temperature.
+
+    Attributes:
+        x_pos (int): The x-coordinate of the point.
+        y_pos (int): The y-coordinate of the point.
+        temperature (float): The temperature value associated with this point.
+    """    
     x_pos: int
     y_pos: int
     temperature: float
 
+class DynamicList(list):
+    def remove(self, index):
+        if 0 <= index < len(self):
+            super().pop(index)
+        else:
+            raise IndexError("Index out of range")
 
 class ThermalCamera:
     
@@ -65,11 +79,11 @@ class ThermalCamera:
         self.threshold = 2
 
         # Define the attributes
-        self.center_point = Point(0, int(self.sensor_width/2), int(self.sensor_height/2))
+        self.center_point = Point(int(self.sensor_width/2), int(self.sensor_height/2), 0)
         self.min_point = Point(0, 0, 0)
         self.max_point = Point(0, 0, 0)
 
-        self.user_points = []
+        self.user_points = DynamicList()
 
         self.avg_temp = 0
 
@@ -165,7 +179,10 @@ class ThermalCamera:
             self.colormap_index = 0
         
         return self.COLORMAPS[self.colormap_index]["name"]
-            
+    
+    def add_point(self, x, y):
+        self.user_points.append(Point(x, y, 0))
+
     def _find_colormap_index(self, colormap_name):
         for colormap_index, map_dict in enumerate(self.COLORMAPS):
             if map_dict['name'] == colormap_name:
@@ -191,8 +208,8 @@ class ThermalCamera:
         return temp
 
     def _extract_point_temperature(self, thdata, point):
-        hi = int(thdata[point.x_pos][point.y_pos][0])
-        lo = int(thdata[point.x_pos][point.y_pos][1])
+        hi = int(thdata[point.y_pos][point.x_pos][0])
+        lo = int(thdata[point.y_pos][point.x_pos][1])
 
         point.temperature = self._calculate_point_temperature(hi, lo)
 

@@ -58,9 +58,19 @@ class ThermalApp:
                 self._handle_recording(frame)
 
             # Handle key input
-            self._handle_input(frame)
+            self._handle_keyboard_input(frame)
 
-    def _handle_input(self, image):
+    @staticmethod
+    def _handle_mouse_input(event, x, y, flags, param):
+        if event == cv2.EVENT_LBUTTONDOWN:
+            
+            # Convert the coordinates to image coordinates
+            x_pos = int(x / param.thermal_camera.scale)
+            y_pos = int(y / param.thermal_camera.scale)
+            print(f'Added user monitor point at ({x_pos}, {y_pos})')
+            param.thermal_camera.add_point(x_pos, y_pos)
+
+    def _handle_keyboard_input(self, image):
         """ Handles key input
 
         Args:
@@ -151,11 +161,12 @@ class ThermalApp:
         Args:
             image (UMat): The frame data.
         """
-        # Draw crosshairs
-        self._draw_crosshairs(image)
+        # Draw center crosshairs
+        self._draw_crosshairs(image, self.thermal_camera.center_point)
 
-        # Show temperature
-        self._show_temperature(image, self.thermal_camera.center_point.temperature)
+        # Draw user points
+        for point in self.thermal_camera.user_points:
+            self._draw_crosshairs(image, point)
 
         # Show hud
         if self.hud:
@@ -233,38 +244,31 @@ class ThermalApp:
             self.font, 0.4,(40, 40, 255), 1, cv2.LINE_AA)
 
 
-    def _draw_crosshairs(self, image):
-        """ Draws crosshairs in the middle of the provided frame
+    def _draw_crosshairs(self, image, point):
+        """ Draws crosshairs in the specified poitn and
+        frame and show the temperature of the point
 
         Args:
             image (UMat): The frame data
+            point (Point): The point object
         """
-        center_x = int(self.thermal_camera.scaled_width / 2)
-        center_y = int(self.thermal_camera.scaled_height / 2)
-        cv2.line(image, (center_x, center_y + 20),\
-        (center_x, center_y - 20), (255, 255, 255), 2) #vline
-        cv2.line(image, (center_x + 20, center_y) ,\
-        (center_x - 20, center_y) ,(255,255,255), 2) #hline
+        scale = self.thermal_camera.scale
 
-        cv2.line(image,(center_x, center_y + 20),\
-        (center_x, center_y- 20), (0, 0, 0), 1) #vline
-        cv2.line(image,(center_x + 20, center_y) ,\
-        (center_x - 20, center_y), (0, 0, 0), 1) #hline
+        # Draw the crosshairs
+        cv2.line(image, (point.x_pos * scale, point.y_pos * scale + 20),\
+        (point.x_pos * scale, point.y_pos * scale - 20), (255, 255, 255), 2) #vline
+        cv2.line(image, (point.x_pos * scale + 20, point.y_pos * scale) ,\
+        (point.x_pos * scale - 20, point.y_pos * scale) ,(255,255,255), 2) #hline
 
-    def _show_temperature(self, image, temp):
-        """ Displayes the temperature of the center of the frame
+        cv2.line(image,(point.x_pos * scale, point.y_pos * scale + 20),\
+        (point.x_pos * scale, point.y_pos * scale- 20), (0, 0, 0), 1) #vline
+        cv2.line(image,(point.x_pos * scale + 20, point.y_pos * scale) ,\
+        (point.x_pos * scale - 20, point.y_pos * scale), (0, 0, 0), 1) #hline
 
-        Args:
-            image (UMat): The frame data
-            temp (float): The temperature value
-        """
-
-        center_x = int(self.thermal_camera.scaled_width / 2)
-        center_y = int(self.thermal_camera.scaled_height / 2)
-
-        cv2.putText(image, f'{temp} C', (center_x + 10, center_y - 10),\
+        # Display the temperature text
+        cv2.putText(image, f'{point.temperature} C', (point.x_pos * scale + 10, point.y_pos * scale - 10),\
         self.font, 0.45,(0, 0, 0), 2, cv2.LINE_AA)
-        cv2.putText(image, f'{temp} C', (center_x + 10, center_y - 10),\
+        cv2.putText(image, f'{point.temperature} C', (point.x_pos * scale + 10, point.y_pos * scale - 10),\
         self.font, 0.45,(0, 255, 255), 1, cv2.LINE_AA)
 
     def _start_recording(self):
@@ -306,6 +310,7 @@ class ThermalApp:
         cv2.resizeWindow('Thermal',
                         self.thermal_camera.scaled_width,
                         self.thermal_camera.scaled_height)
+        cv2.setMouseCallback('Thermal', self._handle_mouse_input, param=self)
 
 @click.command()
 @click.option("--device", default=0, help="Video Device number e.g. 0, use v4l2-ctl --list-devices")
