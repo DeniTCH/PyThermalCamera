@@ -6,7 +6,7 @@ https://youtube.com/leslaboratory
 
 Refactored by @DeniTCH August 2024
 
-A Python program to read, parse and display thermal data from the 
+A Python program to read, parse and display thermal data from the
 Topdon TC001 or IniRay P2Pro Thermal camera!
 '''
 
@@ -16,6 +16,9 @@ import click
 from thermal_camera import ThermalCamera
 
 class ThermalApp:
+    """Class to represent the thermal camera application and act as a container for
+        all its functions.
+    """
 
     def __init__(self, thermal_camera):
 
@@ -63,9 +66,9 @@ class ThermalApp:
             self._handle_keyboard_input(frame)
 
     @staticmethod
-    def _handle_mouse_input(event, x, y, flags, param):
+    def _handle_mouse_input(event, x, y, _, param):
         if event == cv2.EVENT_LBUTTONDOWN:
-            
+
             # Convert the coordinates to image coordinates
             x_pos = int(x / param.thermal_camera.scale)
             y_pos = int(y / param.thermal_camera.scale)
@@ -87,8 +90,8 @@ class ThermalApp:
             else:
                 self.point_erase_mode = True
                 print('Entered point erase mode')
-            
-        
+
+
         if self.point_erase_mode and key >= 48 and key <= 57:
             number = int(chr(key))
             self.thermal_camera.remove_point(number)
@@ -222,7 +225,7 @@ class ThermalApp:
         cv2.FONT_HERSHEY_SIMPLEX, 0.45,(0, 255, 255), 1, cv2.LINE_AA)
 
     def _draw_hud(self, image):
-        """ Draws the HUD box in the right corner of the 
+        """ Draws the HUD box in the right corner of the
            provided frame
 
         Args:
@@ -283,18 +286,41 @@ class ThermalApp:
         (point.x_pos * scale - crosshair_size, point.y_pos * scale), (0, 0, 0), 1) #hline
 
         # Display the temperature text
-        cv2.putText(image, f'{point.temperature} C', (point.x_pos * scale + 10, point.y_pos * scale - 10),\
-        self.font, 0.45, (0, 0, 0), 2, cv2.LINE_AA)
-        cv2.putText(image, f'{point.temperature} C', (point.x_pos * scale + 10, point.y_pos * scale - 10),\
-        self.font, 0.45, (0, 255, 255), 1, cv2.LINE_AA)
+        cv2.putText(image,
+                    f'{point.temperature} C',
+                    (point.x_pos * scale + 10, point.y_pos * scale - 10),
+                    self.font,
+                    0.45,
+                    (0, 0, 0),
+                    2,
+                    cv2.LINE_AA)
+        cv2.putText(image,
+                    f'{point.temperature} C',
+                    (point.x_pos * scale + 10, point.y_pos * scale - 10),
+                    self.font,
+                    0.45,
+                    (0, 255, 255),
+                    1,cv2.LINE_AA)
 
         # Display optional text
         if point_name:
-            cv2.putText(image, f'{point_name}', (point.x_pos * scale + 10, point.y_pos * scale - 25),\
-            self.font, 0.45, (0, 0, 0), 2, cv2.LINE_AA)
-            cv2.putText(image, f'{point_name}', (point.x_pos * scale + 10, point.y_pos * scale - 25),\
-            self.font, 0.45, (0, 255, 255), 1, cv2.LINE_AA)
-        
+            cv2.putText(image,
+                        f'{point_name}',
+                        (point.x_pos * scale + 10, point.y_pos * scale - 25),
+                        self.font,
+                        0.45,
+                        (0, 0, 0),
+                        2,
+                        cv2.LINE_AA)
+            cv2.putText(image,
+                        f'{point_name}',
+                        (point.x_pos * scale + 10, point.y_pos * scale - 25),
+                        self.font,
+                        0.45,
+                        (0, 255, 255),
+                        1,
+                        cv2.LINE_AA)
+
 
     def _start_recording(self):
         """ Starts a video recording of the window contents
@@ -312,9 +338,9 @@ class ThermalApp:
         return video_handle
 
     def _snapshot(self, image):
-        """ Creates a snapshot of the current contents of 
+        """ Creates a snapshot of the current contents of
             the window and saves it in the same folder as the program
-        
+
         Args:
             image (UMat): The image matrix
 

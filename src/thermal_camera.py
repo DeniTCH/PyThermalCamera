@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 
 from dataclasses import dataclass
@@ -21,7 +20,7 @@ class Point:
     temperature: float
 
 class DynamicList(list):
-    """ A data structure to act as a list, with the added functionality of removing 
+    """ A data structure to act as a list, with the added functionality of removing
     one of the list elements."""
 
     def remove(self, index):
@@ -29,12 +28,13 @@ class DynamicList(list):
         Removes the element at the specified index from this list.
 
         Args:
-            index (int): The index of the element to be removed. Index must be within range (0 <= index < len(self)).
+            index (int): The index of the element to be removed. 
+                         Index must be within range (0 <= index < len(self)).
         Raises:
             IndexError: If the index is out of range (i.e., not in the range [0, len(self)-1]).
         Returns:
             None
-        """     
+        """
 
         if 0 <= index < len(self):
             super().pop(index)
@@ -132,7 +132,7 @@ class ThermalCamera:
         self.cap.release()
 
     def get_frame(self):
-        """Retrieves a frame from the camera and converts it to temperatures, 
+        """Retrieves a frame from the camera and converts it to temperatures,
         applies scaling and color mapping. Extracts min, max, average, center temperatures
         and temperatures for the user specified points.
 
@@ -156,7 +156,7 @@ class ThermalCamera:
 
         # Now parse the data from the bottom frame and convert to temp!
         # https://www.eevblog.com/forum/thermal-imaging/infiray-and-their-p2-pro-discussion/200/
-        # Huge props to LeoDJ for figuring out how the data is 
+        # Huge props to LeoDJ for figuring out how the data is
         # stored and how to compute temp from it.
         # grab data from the center pixel...
 
@@ -327,8 +327,8 @@ class ThermalCamera:
             Point: The Point object, that contains the coordinates and the temperature.
         """
         max_val = thdata.max()
-        
-        # This will return array, as multiple points 
+
+        # This will return array, as multiple points
         # might have the same value, we will just extract the first point
         mcol, mrow = np.where((thdata == max_val))
         mrow = mrow[0]
@@ -344,10 +344,10 @@ class ThermalCamera:
 
         Returns:
             Point: The Point object, that contains the coordinates and the temperature.
-        """        
+        """
         min_val = thdata.min()
-        
-        # This will return array, as multiple points 
+
+        # This will return array, as multiple points
         # might have the same value, we will just extract the first point
         mcol, mrow = np.where((thdata == min_val))
         mrow = mrow[0]
@@ -363,7 +363,7 @@ class ThermalCamera:
 
         Returns:
             float: The average temperature of the image.
-        """        
+        """
         temp = round(thdata.mean(), 2)
         return temp
 
