@@ -32,6 +32,8 @@ class ThermalApp:
         self.elapsed_time = "00:00:00"
         self.snaptime = "None"
 
+        self.point_erase_mode = False
+
         # GUI texts
         self.gui_colormap_text = self.thermal_camera.colormap_name
 
@@ -77,6 +79,21 @@ class ThermalApp:
             image (UMat): The frame data.
         """
         key = cv2.waitKey(1)
+
+        if key == ord('o'):
+            if self.point_erase_mode:
+                self.point_erase_mode = False
+                print('Exited point erase mode')
+            else:
+                self.point_erase_mode = True
+                print('Entered point erase mode')
+            
+        
+        if self.point_erase_mode and key >= 48 and key <= 57:
+            number = int(chr(key))
+            self.thermal_camera.remove_point(number)
+            print(f'Removed user monitor point #{number}')
+            self.point_erase_mode = False
 
         if key == ord('a'): #Increase blur radius
             self.thermal_camera.increase_blur()
@@ -165,8 +182,8 @@ class ThermalApp:
         self._draw_crosshairs(image, self.thermal_camera.center_point)
 
         # Draw user points
-        for point in self.thermal_camera.user_points:
-            self._draw_crosshairs(image, point)
+        for idx, point in enumerate(self.thermal_camera.user_points):
+            self._draw_crosshairs(image, point, point_name=f'P{idx}', crosshair_size=10)
 
         # Show hud
         if self.hud:
@@ -244,7 +261,7 @@ class ThermalApp:
             self.font, 0.4,(40, 40, 255), 1, cv2.LINE_AA)
 
 
-    def _draw_crosshairs(self, image, point):
+    def _draw_crosshairs(self, image, point, point_name=None, crosshair_size=20):
         """ Draws crosshairs in the specified poitn and
         frame and show the temperature of the point
 
@@ -255,21 +272,29 @@ class ThermalApp:
         scale = self.thermal_camera.scale
 
         # Draw the crosshairs
-        cv2.line(image, (point.x_pos * scale, point.y_pos * scale + 20),\
-        (point.x_pos * scale, point.y_pos * scale - 20), (255, 255, 255), 2) #vline
-        cv2.line(image, (point.x_pos * scale + 20, point.y_pos * scale) ,\
-        (point.x_pos * scale - 20, point.y_pos * scale) ,(255,255,255), 2) #hline
+        cv2.line(image, (point.x_pos * scale, point.y_pos * scale + crosshair_size),\
+        (point.x_pos * scale, point.y_pos * scale - crosshair_size), (255, 255, 255), 2) #vline
+        cv2.line(image, (point.x_pos * scale + crosshair_size, point.y_pos * scale) ,\
+        (point.x_pos * scale - crosshair_size, point.y_pos * scale) ,(255,255,255), 2) #hline
 
-        cv2.line(image,(point.x_pos * scale, point.y_pos * scale + 20),\
-        (point.x_pos * scale, point.y_pos * scale- 20), (0, 0, 0), 1) #vline
-        cv2.line(image,(point.x_pos * scale + 20, point.y_pos * scale) ,\
-        (point.x_pos * scale - 20, point.y_pos * scale), (0, 0, 0), 1) #hline
+        cv2.line(image,(point.x_pos * scale, point.y_pos * scale + crosshair_size),\
+        (point.x_pos * scale, point.y_pos * scale- crosshair_size), (0, 0, 0), 1) #vline
+        cv2.line(image,(point.x_pos * scale + crosshair_size, point.y_pos * scale) ,\
+        (point.x_pos * scale - crosshair_size, point.y_pos * scale), (0, 0, 0), 1) #hline
 
         # Display the temperature text
         cv2.putText(image, f'{point.temperature} C', (point.x_pos * scale + 10, point.y_pos * scale - 10),\
-        self.font, 0.45,(0, 0, 0), 2, cv2.LINE_AA)
+        self.font, 0.45, (0, 0, 0), 2, cv2.LINE_AA)
         cv2.putText(image, f'{point.temperature} C', (point.x_pos * scale + 10, point.y_pos * scale - 10),\
-        self.font, 0.45,(0, 255, 255), 1, cv2.LINE_AA)
+        self.font, 0.45, (0, 255, 255), 1, cv2.LINE_AA)
+
+        # Display optional text
+        if point_name:
+            cv2.putText(image, f'{point_name}', (point.x_pos * scale + 10, point.y_pos * scale - 25),\
+            self.font, 0.45, (0, 0, 0), 2, cv2.LINE_AA)
+            cv2.putText(image, f'{point_name}', (point.x_pos * scale + 10, point.y_pos * scale - 25),\
+            self.font, 0.45, (0, 255, 255), 1, cv2.LINE_AA)
+        
 
     def _start_recording(self):
         """ Starts a video recording of the window contents
