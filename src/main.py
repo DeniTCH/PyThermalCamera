@@ -19,6 +19,7 @@ class ThermalApp:
     """Class to represent the thermal camera application and act as a container for
         all its functions.
     """
+    WINDOW_NAME = 'Thermal'
 
     def __init__(self, thermal_camera):
 
@@ -56,7 +57,7 @@ class ThermalApp:
             self._draw_gui(frame)
 
             # Display the image in the window
-            cv2.imshow('Thermal', frame)
+            cv2.imshow(self.WINDOW_NAME, frame)
 
             # If we are recording
             if self.recording:
@@ -81,86 +82,96 @@ class ThermalApp:
         Args:
             image (UMat): The frame data.
         """
-        key = cv2.waitKey(1)
+        #TODO: Load keymap from a configuration file
 
-        if key == ord('o'):
-            if self.point_erase_mode:
+        #FIXME: This solution does not seem to work in GNOME?
+        # Detect if the window has been closed with the X of the window
+        if cv2.getWindowProperty(self.WINDOW_NAME, cv2.WND_PROP_VISIBLE) >= 1:
+            #print(cv2.getWindowProperty(self.WINDOW_NAME, cv2.WND_PROP_VISIBLE))
+            key = cv2.waitKey(1)
+
+            if key == ord('o'):
+                if self.point_erase_mode:
+                    self.point_erase_mode = False
+                    print('Exited point erase mode')
+                else:
+                    self.point_erase_mode = True
+                    print('Entered point erase mode')
+
+
+            if self.point_erase_mode and key >= 48 and key <= 57:
+                number = int(chr(key))
+                self.thermal_camera.remove_point(number)
+                print(f'Removed user monitor point #{number}')
                 self.point_erase_mode = False
-                print('Exited point erase mode')
-            else:
-                self.point_erase_mode = True
-                print('Entered point erase mode')
 
+            if key == ord('a'): #Increase blur radius
+                self.thermal_camera.increase_blur()
+            if key == ord('z'): #Decrease blur radius
+                self.thermal_camera.decrease_blur()
 
-        if self.point_erase_mode and key >= 48 and key <= 57:
-            number = int(chr(key))
-            self.thermal_camera.remove_point(number)
-            print(f'Removed user monitor point #{number}')
-            self.point_erase_mode = False
+            if key == ord('s'): #Increase threshold
+                self.thermal_camera.increase_threshold()
+            if key == ord('x'): #Decrease threashold
+                self.thermal_camera.decrease_threshold()
 
-        if key == ord('a'): #Increase blur radius
-            self.thermal_camera.increase_blur()
-        if key == ord('z'): #Decrease blur radius
-            self.thermal_camera.decrease_blur()
+            if key == ord('d'): #Increase scale
+                self.thermal_camera.increase_scaling()
+                if not self.fullscreen and not self.is_pi:
+                    cv2.resizeWindow(self.WINDOW_NAME,
+                                    self.thermal_camera.scaled_width,
+                                    self.thermal_camera.scaled_height)
 
-        if key == ord('s'): #Increase threshold
-            self.thermal_camera.increase_threshold()
-        if key == ord('x'): #Decrease threashold
-            self.thermal_camera.decrease_threshold()
+            if key == ord('c'): #Decrease self.thermal_camera.scale
+                self.thermal_camera.decrease_scaling()
+                if not self.fullscreen and not self.is_pi:
+                    cv2.resizeWindow(self.WINDOW_NAME,
+                                    self.thermal_camera.scaled_width,
+                                    self.thermal_camera.scaled_height)
 
-        if key == ord('d'): #Increase scale
-            self.thermal_camera.increase_scaling()
-            if not self.fullscreen and not self.is_pi:
-                cv2.resizeWindow('Thermal',
+            if key == ord('e'): #enable fullscreen
+                self.fullscreen = True
+                cv2.namedWindow(self.WINDOW_NAME, cv2.WND_PROP_FULLSCREEN)
+                cv2.setWindowProperty(self.WINDOW_NAME, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+            if key == ord('w'): #disable fullscreen
+                self.fullscreen = False
+                cv2.namedWindow(self.WINDOW_NAME, cv2.WINDOW_GUI_NORMAL)
+                cv2.setWindowProperty(self.WINDOW_NAME, cv2.WND_PROP_AUTOSIZE,cv2.WINDOW_GUI_NORMAL)
+                cv2.resizeWindow(self.WINDOW_NAME,
                                 self.thermal_camera.scaled_width,
                                 self.thermal_camera.scaled_height)
 
-        if key == ord('c'): #Decrease self.thermal_camera.scale
-            self.thermal_camera.decrease_scaling()
-            if not self.fullscreen and not self.is_pi:
-                cv2.resizeWindow('Thermal',
-                                self.thermal_camera.scaled_width,
-                                self.thermal_camera.scaled_height)
+            if key == ord('f'): # Increase contrast
+                self.thermal_camera.increase_contrast()
+            if key == ord('v'): # Decrease contrast
+                self.thermal_camera.decrease_contrast()
 
-        if key == ord('e'): #enable fullscreen
-            self.fullscreen = True
-            cv2.namedWindow('Thermal', cv2.WND_PROP_FULLSCREEN)
-            cv2.setWindowProperty('Thermal', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-        if key == ord('w'): #disable fullscreen
-            self.fullscreen = False
-            cv2.namedWindow('Thermal', cv2.WINDOW_GUI_NORMAL)
-            cv2.setWindowProperty('Thermal', cv2.WND_PROP_AUTOSIZE,cv2.WINDOW_GUI_NORMAL)
-            cv2.resizeWindow('Thermal',
-                            self.thermal_camera.scaled_width,
-                            self.thermal_camera.scaled_height)
+            # Hud on/off
+            if key == ord('h'):
+                if self.hud:
+                    self.hud=False
+                else:
+                    self.hud=True
 
-        if key == ord('f'): # Increase contrast
-            self.thermal_camera.increase_contrast()
-        if key == ord('v'): # Decrease contrast
-            self.thermal_camera.decrease_contrast()
+            if key == ord('m'): #m to cycle through color maps
+                self.gui_colormap_text = self.thermal_camera.next_colormap()
 
-        # Hud on/off
-        if key == ord('h'):
-            if self.hud:
-                self.hud=False
-            else:
-                self.hud=True
+            if key == ord('r') and not self.recording: #r to start reording
+                self.video_handle = self._start_recording()
+                self.recording = True
+                self.recording_start_time = time.time()
+            if key == ord('t'): #f to finish reording
+                self.recording = False
+                self.elapsed_time = "00:00:00"
 
-        if key == ord('m'): #m to cycle through color maps
-            self.gui_colormap_text = self.thermal_camera.next_colormap()
+            if key == ord('p'): #f to finish reording
+                self.snaptime = self._snapshot(image)
 
-        if key == ord('r') and not self.recording: #r to start reording
-            self.video_handle = self._start_recording()
-            self.recording = True
-            self.recording_start_time = time.time()
-        if key == ord('t'): #f to finish reording
-            self.recording = False
-            self.elapsed_time = "00:00:00"
-
-        if key == ord('p'): #f to finish reording
-            self.snaptime = self._snapshot(image)
-
-        if key == ord('q'):
+            if key == ord('q'):
+                self.thermal_camera.stop_capture()
+                self.thermal_camera.stop_capture()
+                cv2.destroyAllWindows()
+        else:
             self.thermal_camera.stop_capture()
             cv2.destroyAllWindows()
 
@@ -286,6 +297,7 @@ class ThermalApp:
         (point.x_pos * scale - crosshair_size, point.y_pos * scale), (0, 0, 0), 1) #hline
 
         # Display the temperature text
+        # FIXME: Implement arguments as private class constants
         cv2.putText(image,
                     f'{point.temperature} C',
                     (point.x_pos * scale + 10, point.y_pos * scale - 10),
@@ -357,11 +369,11 @@ class ThermalApp:
     def _create_window(self):
         """ Creates an OpenCV window for displaying the camera stream """
 
-        cv2.namedWindow('Thermal', cv2.WINDOW_GUI_NORMAL)
-        cv2.resizeWindow('Thermal',
+        cv2.namedWindow(self.WINDOW_NAME, cv2.WINDOW_GUI_NORMAL)
+        cv2.resizeWindow(self.WINDOW_NAME,
                         self.thermal_camera.scaled_width,
                         self.thermal_camera.scaled_height)
-        cv2.setMouseCallback('Thermal', self._handle_mouse_input, param=self)
+        cv2.setMouseCallback(self.WINDOW_NAME, self._handle_mouse_input, param=self)
 
 @click.command()
 @click.option("--device", default=0, help="Video Device number e.g. 0, use v4l2-ctl --list-devices")
@@ -394,6 +406,8 @@ def main(device, scale, alpha, colormap):
 
 def usage():
     """ Prints the author information and the keyboard shortcuts. """
+
+    # FIXME: Implemennt proper printing of help
 
     print(r"""
     Les Wright 21 June 2023
